@@ -35,7 +35,9 @@ theorem non_trivial_factor : ∀ n a b : Nat, 0 < n → n ∣ a * b → ¬ n ∣
   have h₅ : (n : ℤ) ∣ (b : ℤ) := by
     rw[h₃]
     apply dvd_add
-    · sorry
+    · apply Dvd.dvd.mul_right
+      rw[mul_comm]
+      norm_cast
     rw[mul_comm ↑b (n : ℤ)]
     rw[mul_assoc]
     apply dvd_mul_right
