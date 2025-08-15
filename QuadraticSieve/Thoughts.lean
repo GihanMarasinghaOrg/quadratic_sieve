@@ -7,7 +7,7 @@ Mid-goal: infer a² ≃ b² (mod n) given sufficiently many relations.
 
 Smaller goals:
 
-* Formalise the idea of a 'relation'. Either as a vector of as a function from
+* Formalise the idea of a 'relation'. Either as a vector or as a function from
   a finite 'set' (the factor base) to F₂
 * Formalise the idea of a factor base. Maybe a function for a fininte set to
   a set of primes plus a sign.
@@ -43,6 +43,25 @@ So how best to represent B? Two possibilities
 * Write a function that returns the vector v from w.
 * Prove that if a factors over B then a is a square if and only
   if the 'vector' v is 0.
+
+## Thoughts about the sieve
+
+What is the sieve? We start with a number n we're trying to factorise. We fix
+some bound B (a positive integer) and we are interested in those primes p < B
+such that n is a quadratic residue modulo p. Our factor base consists of -1
+together with those primes.
+
+We have a function Q(x) = x² - n. Big goal: find x such that Q(x) is a square.
+The point of the sieve is to find x such that Q(x) factors over the factor base.
+
+Consider x = 2, 3, 4, 5, 6, ..., X.
+We have a 'table' Q(2), Q(3), ..., Q(X) = y₂, y₃, ... , y_X.
+Together with a table e₂, ..., e_X of exponent vectors, initialised to zero.
+
+We do something clever (not sure what) a bit like the sieve of Eratosthenes to
+find the exponent vectors (or the exponent vectors modulo 2) for all those x
+such that Q(x) factors over the factor base.
+
 -/
 
 example : (3 : ℕ).Prime := by norm_num
@@ -127,10 +146,14 @@ def fbase : FactorBase where
 
 def expvec : ExponentVector where
   f := fbase
-  w := ![1, 4, 2]
+  w := ![3, 4, 2]
+
+#eval Q expvec
 
 #eval (P expvec.f (Q expvec)).w
 
+
+#check Finset.mul_prod_erase
 
 example (e : ExponentVector) : P e.f (Q e) = e := by
   ext
@@ -140,9 +163,14 @@ example (e : ExponentVector) : P e.f (Q e) = e := by
     simp
   unfold P Q
   simp
-  ext x
+  ext a
   split_ifs with h₁ h₂
-  · sorry
+  · have hprod : ∏ x, e.f.B x ^ e.w x = e.f.B a ^ e.w a * ∏ i ∈ Finset.univ.erase a, e.f.B i ^ e.w i := by
+      have ha : a ∈ (Finset.univ : Finset (Fin e.f.n)) := Finset.mem_univ a
+      rw [Finset.mul_prod_erase _ (fun (i : Fin e.f.n) => e.f.B i ^ e.w i) ha ]
+    rw [hprod, h₁] at h₂
+
+    sorry
   · sorry
   sorry
 
@@ -301,6 +329,10 @@ example (z : ℤ) (hz : z ≠ 0) : z.natAbs ≠ 0 := by exact Int.natAbs_ne_zero
 
 example (z : ℤ) : |z|.natAbs = z.natAbs := by exact Int.natAbs_abs z
 
+/-
+There's some repetition in the proof below. The `pos` and `neg` cases generated
+by `split_ifs` in line 311 have similar proofs. Perhaps this can be simplified.
+-/
 example (z : ℤ) (hz : z ≠ 0) : valueFromExponentVector (z.exponentVector2) = z := by
   unfold valueFromExponentVector Int.exponentVector2
   simp [*]
@@ -350,3 +382,13 @@ example (z : ℤ) (hz : z ≠ 0) : valueFromExponentVector (z.exponentVector2) =
     · linarith
     simp
   exact abs_nonneg z
+
+abbrev F₂ : Type := GaloisField 2 1
+
+/- def mod_two_exponent_vector (z : ℤ) : ℤ →₀ F₂ where
+  support := z.exponentVector2.support
+  toFun p :=
+    if p = -1 then if z < 0 then 1 else 0
+    else if p < 0 then 0
+    else (z.natAbs).factorization.toFun p.natAbs
+  mem_support_toFun := by sorry -/
